@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 import sys, os, traceback, signal as signalmodule
 
+import threading
+tls = threading.local()
+
 __all__ = ['get_version',
            'get_header_version',
            'supported_backends',
@@ -627,7 +630,7 @@ class loop(object):
 
 # #endif
 
-_refcount = {}
+tls._refcount = {}
 
 class watcher(object):
     libev_start_this_watcher = None
@@ -676,18 +679,18 @@ class watcher(object):
     def _python_incref(self):
         if not self._flags & 1:
             try:
-                _refcount[self] += 1
+                tls._refcount[self] += 1
             except KeyError:
-                _refcount[self] = 1
+                tls._refcount[self] = 1
             # Py_INCREF(<PyObjectPtr>self)
             self._flags |= 1
 
     def _python_decref(self):
         try:
-            if _refcount[self] <= 1:
-                del _refcount[self]
+            if tls._refcount[self] <= 1:
+                del tls._refcount[self]
             else:
-                _refcount[self] -= 1
+                tls._refcount[self] -= 1
         except KeyError:
             pass
 
